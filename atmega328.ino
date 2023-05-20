@@ -1,4 +1,4 @@
-//Program For Tft Display Message From Sdcard
+// Program For Tft Display Message From Sdcard
 // MCUFRIEND UNO shields have microSD on pins 10, 11, 12, 13
 // The official <SD.h> library only works on the hardware SPI pins
 // e.g. 11, 12, 13 on a Uno (or STM32 Nucleo)
@@ -24,15 +24,14 @@ MCUFRIEND_kbv tft;
 #define NAMEMATCH ""            // "" matches any name
 //#define NAMEMATCH "tiger"     // *tiger*.bmp
 #define PALETTEDEPTH 0          // do not support Palette modes
-//#define PALETTEDEPTH 8        // support 256-colour Palette
+//#define PALETTEDEPTH 8        // support 256-color Palette
 
 
-char namebuf[32] = "/";               //BMP files in root directory
-//char namebuf[32] = "/bitmaps/";    //BMP directory e.g. files in /bitmaps/*.bmp
+char namebuf[32] = "/";               // BMP files in root directory
+//char namebuf[32] = "/bitmaps/";    // BMP directory e.g. files in /bitmaps/*.bmp
 
 File root;
 int pathlen;
-
 
 
 void setup()
@@ -60,7 +59,6 @@ void setup()
 }
 
 
-
 void loop()
 {
     char *nm = namebuf + pathlen;
@@ -76,54 +74,53 @@ void loop()
             strcpy(nm, (char *)f.name());
         #endif
         
-    f.close();
-    strlwr(nm);
+        f.close();
+        strlwr(nm);
 
-    if (strstr(nm, ".bmp") != NULL && strstr(nm, NAMEMATCH) != NULL) {
-    
-        Serial.print(namebuf);
-        Serial.print(F(" - "));
-        tft.fillScreen(0);
-        start = millis();
-        ret = showBMP(namebuf, 5, 5);
-    
-        switch (ret) {
-          case 0:
-              Serial.print(millis() - start);
-              Serial.println(F("ms"));
-              delay(5000);
-              break;
+        if (strstr(nm, ".bmp") != NULL && strstr(nm, NAMEMATCH) != NULL) {
+        
+            Serial.print(namebuf);
+            Serial.print(F(" - "));
+            tft.fillScreen(0);
+            start = millis();
+            ret = showBMP(namebuf, 5, 5);
+        
+            switch (ret) {
+                case 0:
+                    Serial.print(millis() - start);
+                    Serial.println(F("ms"));
+                    delay(5000);
+                    break;
 
-          case 1:
-              Serial.println(F("bad position"));
-              break;
+                case 1:
+                    Serial.println(F("bad position"));
+                    break;
 
-          case 2:
-              Serial.println(F("bad BMP ID"));
-              break;
-          
-          case 3:
-              Serial.println(F("wrong number of planes"));
-              break;
+                case 2:
+                    Serial.println(F("bad BMP ID"));
+                    break;
+                
+                case 3:
+                    Serial.println(F("wrong number of planes"));
+                    break;
 
-          case 4:
-              Serial.println(F("unsupported BMP format"));
-              break;
+                case 4:
+                    Serial.println(F("unsupported BMP format"));
+                    break;
 
-          case 5:
-              Serial.println(F("unsupported palette"));
-              break;
+                case 5:
+                    Serial.println(F("unsupported palette"));
+                    break;
 
-          default:
-              Serial.println(F("unknown"));
-              break;
-          }
-      }
-  }
+                default:
+                    Serial.println(F("unknown"));
+                    break;
+            }
+        }
+    }
 
-  else root.rewindDirectory();
+    else root.rewindDirectory();
 }
-
 
 
 #define BMPIMAGEOFFSET 54
@@ -186,7 +183,7 @@ uint8_t showBMP(char *nm, int x, int y)
         bool first = true;
         is565 = (pos == 3);                                                   // ?already in 16-bit format
         
-                                                                              // BMP rows are padded (if needed) to 4-byte boundary
+        // BMP rows are padded (if needed) to 4-byte boundary
         rowSize = (bmpWidth * bmpDepth / 8 + 3) & ~3;
         
         if (bmpHeight < 0) {                                                  // If negative, image is in top-down order.
@@ -207,95 +204,96 @@ uint8_t showBMP(char *nm, int x, int y)
             bmpFile.seek(BMPIMAGEOFFSET);                                     //palette is always @ 54
             bitmask = 0xFF;
 
-        if (bmpDepth < 8)
-            bitmask >>= bmpDepth;
+            if (bmpDepth < 8)
+                bitmask >>= bmpDepth;
             
-        bitshift = 8 - bmpDepth;
-        n = 1 << bmpDepth;
-        lcdbufsiz -= n;
-        palette = lcdbuffer + lcdbufsiz;
+            bitshift = 8 - bmpDepth;
+            n = 1 << bmpDepth;
+            lcdbufsiz -= n;
+            palette = lcdbuffer + lcdbufsiz;
 
-        for (col = 0; col < n; col++) {
-            pos = read32(bmpFile);                                            //map palette to 5-6-5
-            palette[col] = ((pos & 0x0000F8) >> 3) | ((pos & 0x00FC00) >> 5) | ((pos & 0xF80000) >> 8);
+            for (col = 0; col < n; col++) {
+                pos = read32(bmpFile);                                            //map palette to 5-6-5
+                palette[col] = ((pos & 0x0000F8) >> 3) | ((pos & 0x00FC00) >> 5) | ((pos & 0xF80000) >> 8);
+            }
         }
+
+
+        // Set TFT address window to clipped image bounds
+        tft.setAddrWindow(x, y, x + w - 1, y + h - 1);
+
+        for (row = 0; row < h; row++) {                                                 // 
+            uint8_t r, g, b, *sdptr;
+            int lcdidx, lcdleft;
+            
+            if (flip)                                                                   // Bitmap is stored bottom-to-top order (normal BMP)
+                pos = bmpImageoffset + (bmpHeight - 1 - row) * rowSize;
+            else                                                                        // Bitmap is stored top-to-bottom
+                pos = bmpImageoffset + row * rowSize;
+            if (bmpFile.position() != pos) {                                            // Need seek?
+                bmpFile.seek(pos);
+                buffidx = sizeof(sdbuffer);                                             // Force buffer reload
+            }
+
+            for (col = 0; col < w; ) {                                                      //pixels in row
+                lcdleft = w - col;
+
+                if (lcdleft > lcdbufsiz) lcdleft = lcdbufsiz;
+                    
+                for (lcdidx = 0; lcdidx < lcdleft; lcdidx++) {                          // buffer at a time
+                    uint16_t color;
+                                                                                          // Time to read more pixel data?
+                    
+                    if (buffidx >= sizeof(sdbuffer)) {                                      // Indeed
+                        bmpFile.read(sdbuffer, sizeof(sdbuffer));
+                        buffidx = 0;                                                        // Set index to beginning
+                        r = 0;
+                    }
+
+                    switch (bmpDepth) {                                                     // Convert pixel from BMP to TFT format
+                        case 24:
+                            b = sdbuffer[buffidx++];
+                            g = sdbuffer[buffidx++];
+                            r = sdbuffer[buffidx++];
+                            color = tft.color565(r, g, b);
+                            break;
+
+                        case 16:
+                            b = sdbuffer[buffidx++];
+                            r = sdbuffer[buffidx++];
+                            
+                            if (is565)
+                                color = (r << 8) | (b);
+                            else
+                                color = (r << 9) | ((b & 0xE0) << 1) | (b & 0x1F);
+                            break;
+
+                        case 1:
+                        case 4:
+                        case 8:
+                            if (r == 0)
+                                b = sdbuffer[buffidx++], r = 8;
+                            if (bmpDepth == 1)
+                                color = (b & 0x80) ? 0xFFFF : 0;
+                            else {
+                                c = (b >> bitshift) & bitmask;
+                                color = palette[c];
+                            }
+                            r -= bmpDepth;
+                            break;
+                    }
+                    lcdbuffer[lcdidx] = color;
+                }
+
+                tft.pushColors(lcdbuffer, lcdidx, first);
+                first = false;
+                col += lcdidx;
+            }
+        }
+
+        ret = 0;                                                                        // good render
     }
 
-
-// Set TFT address window to clipped image bounds
-tft.setAddrWindow(x, y, x + w - 1, y + h - 1);
-
-for (row = 0; row < h; row++) {                                                 // 
-    uint8_t r, g, b, *sdptr;
-    int lcdidx, lcdleft;
-    
-    if (flip)                                                                   // Bitmap is stored bottom-to-top order (normal BMP)
-        pos = bmpImageoffset + (bmpHeight - 1 - row) * rowSize;
-    else                                                                        // Bitmap is stored top-to-bottom
-        pos = bmpImageoffset + row * rowSize;
-    if (bmpFile.position() != pos) {                                            // Need seek?
-        bmpFile.seek(pos);
-        buffidx = sizeof(sdbuffer);                                             // Force buffer reload
-  }
-
-for (col = 0; col < w; ) {                                                      //pixels in row
-    lcdleft = w - col;
-
-    if (lcdleft > lcdbufsiz) lcdleft = lcdbufsiz;
-        
-        for (lcdidx = 0; lcdidx < lcdleft; lcdidx++) {                          // buffer at a time
-        uint16_t color;
-                                                                                // Time to read more pixel data?
-        
-        if (buffidx >= sizeof(sdbuffer)) {                                      // Indeed
-            bmpFile.read(sdbuffer, sizeof(sdbuffer));
-            buffidx = 0;                                                        // Set index to beginning
-            r = 0;
-        }
-
-        switch (bmpDepth) {                                                     // Convert pixel from BMP to TFT format
-          case 24:
-              b = sdbuffer[buffidx++];
-              g = sdbuffer[buffidx++];
-              r = sdbuffer[buffidx++];
-              color = tft.color565(r, g, b);
-              break;
-
-          case 16:
-              b = sdbuffer[buffidx++];
-              r = sdbuffer[buffidx++];
-              
-              if (is565)
-                  color = (r << 8) | (b);
-              else
-                  color = (r << 9) | ((b & 0xE0) << 1) | (b & 0x1F);
-              break;
-
-          case 1:
-          case 4:
-          case 8:
-              if (r == 0)
-                  b = sdbuffer[buffidx++], r = 8;
-              
-              color = palette[(b >> bitshift) & bitmask];
-              r -= bmpDepth;
-              b <<= bmpDepth;
-              break;
-          }
-
-          lcdbuffer[lcdidx] = color;
-      }
-
-      tft.pushColors(lcdbuffer, lcdidx, first);
-      first = false;
-      col += lcdidx;
-    }                                                                                       // end cols
-  }                                                                                         // end rows
-
-  tft.setAddrWindow(0, 0, tft.width() - 1, tf t.height() - 1);                             //restore full screen
-  ret = 0;                                                                                 // good render
-}
-
-bmpFile.close();
-return (ret);
+    bmpFile.close();
+    return ret;
 }
