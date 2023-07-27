@@ -2,7 +2,7 @@
 
 > A Final Year Dissertation and Conference Proceedings in IEEE Xplore, presented at Sri Sairam Engineering College.
 
-![image](https://github.com/rbga/IoT-Enabled-Coherent-Detritus-Management-System/assets/75168756/ee01df18-4d43-4e2c-bda4-8a5b6e46362a)
+![image](https://github.com/rbga/IoT-Enabled-Coherent-Detritus-Management-System/assets/75168756/65f0a384-9507-4824-9669-4f048fa0b90b)
 
 ## Introduction
 
